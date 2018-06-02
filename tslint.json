@@ -12,16 +12,7 @@
         "no-arg": true,
         "no-bitwise": true,
         "no-conditional-assignment": true,
-        "no-consecutive-blank-lines": false,
-        "no-console": {
-            "options": [
-                "debug",
-                "log",
-                "time",
-                "timeEnd",
-                "trace"
-            ]
-        }
+        "no-consecutive-blank-lines": false
     },
     "jsRules": {
         "max-line-length": {

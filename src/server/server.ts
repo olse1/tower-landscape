@@ -1,189 +1,143 @@
+import { CONTROLS } from './../shared/models';
 import {
     CometEvent,
     GameEvent,
     PlayerEvent,
     ServerEvent
 } from './../shared/events.model';
-import {SpaceShip} from '../shared/models';
+import {SpaceShip, PLAYER_CONFIG} from '../shared/models';
 
-const express = require('express');
-const app = express();
-const http = require('http').Server(app);
-const io = require('socket.io')(http);
-const uuid = require('uuid');
+import * as express from 'express';
+import { createServer, Server } from 'http';
+import * as socketIo from 'socket.io';
+import { Socket } from 'net';
 
-app.use(express.static('public'));
-
-app.get('/', (req, res) => {
-    res.sendfile(`./index.html`);
-});
 
 class GameServer {
 
+    public static readonly PORT:number = 3000;
+    private app: express.Application;
+    private server: Server;
+    private io: SocketIO.Server;
+    private port: string | number;
+
     private gameHasStarted: boolean = false;
     private hasComet: boolean = false;
+    public players = [];
+    private star = {
+        x: Math.floor(Math.random() * 700) + 50,
+        y: Math.floor(Math.random() * 500) + 50
+    };
+    private scores = {
+        blue: 0,
+        red: 0
+    };
 
     constructor() {
-        this.socketEvents();
+        this.createApp();
+        this.config();
+        this.createServer();
+        this.sockets();
+        this.listen();
     }
 
-    public connect(port): void {
-        http.listen(port, () => {
-            console.info(`Listening on port ${port}`);
+    private createApp(): void {
+        this.app = express();
+        this.app.use(express.static('public'));
+
+        this.app.get('/', (req, res) => {
+            res.sendfile(`./index.html`);
         });
     }
 
-    private socketEvents(): void {
-        io.on(ServerEvent.connected, socket => {
-            this.attachListeners(socket);
+    private createServer(): void {
+        this.server = createServer(this.app);
+    }
+
+    private config(): void {
+        this.port = GameServer.PORT;
+    }
+
+    private sockets(): void {
+        this.io = socketIo(this.server);
+    }
+
+    listen() {
+        this.server.listen(this.port, () => {
+            console.log('Running server on port %s', this.port);
         });
-    }
 
-    private attachListeners(socket): void {
-        this.addSignOnListener(socket);
-        this.addMovementListener(socket);
-        this.addSignOutListener(socket);
-        this.addHitListener(socket);
-        this.addCometHitListener(socket);
-        this.addPickupListener(socket);
-    }
+        this.io.on('connection', (socket: any) => {
+            console.log('a user connected');
+            // create a new player and add it to our players object
+            this.players[socket.id] = {
+                rotation: 0,
+                x: Math.floor(Math.random() * 700) + 50,
+                y: Math.floor(Math.random() * 500) + 50,
+                playerId: socket.id,
+                team: (Math.floor(Math.random() * 2) == 0) ? 'red' : 'blue'
+            };
+            // send the players object to the new player
+            socket.emit('currentPlayers', this.players);
+            // send the star object to the new player
+            socket.emit('starLocation', this.star);
+            // send the current scores
+            socket.emit('scoreUpdate', this.scores);
 
-    private addHitListener(socket): void {
-        socket.on(PlayerEvent.hit, (playerId) => {
-            socket.broadcast.emit(PlayerEvent.hit, playerId);
-        });
-    }
+            // update all other players of the new player
+            socket.broadcast.emit('newPlayer', this.players[socket.id]);
 
-    private updateComet(socket) {
-        if (this.hasComet) {
-            let asteroidCoordinates = this.generateRandomCoordinates();
-            asteroidCoordinates.y = -128;
-            const update = setInterval(() => {
-                asteroidCoordinates.y += 1;
-                asteroidCoordinates.x -= 1;
-                socket.emit(CometEvent.coordinates, asteroidCoordinates);
-                socket.broadcast.emit(CometEvent.coordinates, asteroidCoordinates);
-                this.destroyComet(asteroidCoordinates, socket, update)
-            }, 25);
-        }
-    }
+            socket.on('disconnect', () => {
+                console.log('user disconnected');
+                // remove this player from our players object
+                delete this.players[socket.id];
+                // emit a message to all players to remove this player
+                this.io.emit('disconnect', socket.id);
+            });
 
-    private destroyComet(asteroidCoordinates, socket, update): void {
-        if (asteroidCoordinates.x < -128) {
-            socket.emit(CometEvent.destroy);
-            socket.broadcast.emit(CometEvent.destroy);
-            this.hasComet = false;
-            global.clearInterval(update);
-        }
-    }
+            // when a player moves, update the player data
+            socket.on('playerMovement', (movementData) => {
+                this.players[socket.id].x = movementData.x;
+                this.players[socket.id].y = movementData.y;
+                this.players[socket.id].rotation = movementData.rotation;
+                // emit a message to all players about the player that moved
+                socket.broadcast.emit('playerMoved', this.players[socket.id]);
+            });
 
-    private addCometHitListener(socket): void {
-        socket.on(CometEvent.hit, (playerId) => {
-            socket.broadcast.emit(CometEvent.hit, playerId);
-        });
-    }
+            socket.on('playerKeys', (keys: CONTROLS) => {
+                let movespeed = PLAYER_CONFIG.walkSpeed;
+                if (keys.LEFT) {
+                    this.players[socket.id].x -= movespeed;
+                }
+                if (keys.RIGHT) {
+                    this.players[socket.id].x += movespeed;
+                }
+                if (keys.UP) {
+                    this.players[socket.id].y -= movespeed;
+                }
+                if (keys.DOWN) {
+                    this.players[socket.id].y += movespeed;
+                }
+        console.log(`playerKeys: x: ${this.players[socket.id].x}, y: ${this.players[socket.id].y}`);
+                // emit a message to all players about the player that moved
+                this.io.emit('playerMoved', this.players[socket.id]);
+            });
 
-    private gameInitialised(socket): void {
-        if (!this.gameHasStarted) {
-            this.gameHasStarted = true;
-            this.createComet(socket, 1000);
-            this.calcPickupCoordinates(socket, 5000);
-        }
-    }
-
-    private calcPickupCoordinates(socket, interval: number) {
-        setInterval(() => {
-            const coordinates = this.generateRandomCoordinates();
-            socket.emit(GameEvent.drop, coordinates);
-            socket.broadcast.emit(GameEvent.drop, coordinates);
-        }, interval);
-    }
-
-    private createComet(socket, interval: number) {
-        setInterval(() => {
-            if (!this.hasComet) {
-                socket.comet = {
-                    id: uuid()
-                };
-                this.hasComet = true;
-                socket.emit(CometEvent.create, socket.comet);
-                socket.broadcast.emit(CometEvent.create, socket.comet);
-                this.updateComet(socket);
-            }
-        }, interval);
-    }
-
-    private addPickupListener(socket): void {
-        socket.on(PlayerEvent.pickup, (player) => {
-            socket.player.ammo = player.ammo;
-            socket.broadcast.emit(PlayerEvent.pickup, player.uuid);
-        });
-    }
-
-    private addMovementListener(socket): void {
-        socket.on(PlayerEvent.coordinates, (coors) => {
-            socket.broadcast.emit(PlayerEvent.coordinates, {
-                coors: coors,
-                player: socket.player
+            socket.on('starCollected', () => {
+                if (this.players[socket.id].team === 'red') {
+                    this.scores.red += 10;
+                } else {
+                    this.scores.blue += 10;
+                }
+                this.star.x = Math.floor(Math.random() * 700) + 50;
+                this.star.y = Math.floor(Math.random() * 500) + 50;
+                this.io.emit('starLocation', this.star);
+                this.io.emit('scoreUpdate', this.scores);
             });
         });
-    }
-
-    private addSignOutListener(socket): void {
-        socket.on(ServerEvent.disconnected, () => {
-            if (socket.player) {
-                socket.broadcast.emit(PlayerEvent.quit, socket.player.id);
-            }
-        });
-    }
-
-    private addSignOnListener(socket): void {
-        socket.on(GameEvent.authentication, (player, gameSize) => {
-            socket.emit(PlayerEvent.players, this.getAllPlayers());
-            this.createPlayer(socket, player, gameSize);
-            socket.emit(PlayerEvent.protagonist, socket.player);
-            socket.broadcast.emit(PlayerEvent.joined, socket.player);
-            this.gameInitialised(socket);
-        });
-    }
-
-    private createPlayer(socket, player: SpaceShip, windowSize: { x, y }): void {
-        socket.player = {
-            name: player.name,
-            id: uuid(),
-            ammo: 0,
-            x: this.randomInt(0, windowSize.x),
-            y: this.randomInt(0, windowSize.y)
-        };
-    }
-
-    private get players(): number {
-        return Object.keys(io.sockets.connected).length;
-    }
-
-    private getAllPlayers(): Array<SpaceShip> {
-        const players = [];
-        Object.keys(io.sockets.connected).map((socketID) => {
-            const player = io.sockets.connected[socketID].player;
-            if (player) {
-                players.push(player);
-            }
-        });
-        return players;
-    }
-
-    private generateRandomCoordinates(): { x: number, y: number } {
-        return {
-            x: Math.floor(Math.random() * 1024) + 1,
-            y: Math.floor(Math.random() * 768) + 1
-        };
-    }
-
-    private randomInt(low, high): number {
-        return Math.floor(Math.random() * (high - low) + low);
     }
 }
 
 const gameSession = new GameServer();
 
-gameSession.connect(3000);
+// gameSession.connect();

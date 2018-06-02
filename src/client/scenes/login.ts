@@ -1,8 +1,11 @@
+import { socket } from './../../shared/socket';
 import {GameEvent} from '../../shared/events.model';
+// import * as socketIo from 'socket.io-client';
 
 declare const window: any;
+const SERVER_URL = 'http://localhost:3000';
 
-export class LoginScene {
+export class LoginScene extends Phaser.Scene {
 
     public formContainer: HTMLDivElement;
     public loginPage: HTMLDivElement;
@@ -13,7 +16,10 @@ export class LoginScene {
     private name: any;
 
     constructor() {
-        this.createForm()
+        super({
+            key: "LoginScene"
+        });
+        this.createForm();
     }
 
     private createForm() {
@@ -51,10 +57,11 @@ export class LoginScene {
         e.preventDefault();
         this.toggleLogin();
         const name = this.input.value;
-        window.socket.emit(GameEvent.authentication, {name}, {
+        socket.emit(GameEvent.authentication, {name}, {
             x: window.innerWidth,
             y: window.innerHeight
         });
+        this.scene.start("GameScene");
     }
 
     private toggleLogin(): void {

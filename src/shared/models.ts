@@ -5,3 +5,14 @@ export interface SpaceShip {
     y: number;
     ammo: number;
 }
+
+export const PLAYER_CONFIG = {
+    walkSpeed: 6
+}
+
+export interface CONTROLS {
+    LEFT: boolean;
+    RIGHT: boolean;
+    UP: boolean;
+    DOWN: boolean;
+}

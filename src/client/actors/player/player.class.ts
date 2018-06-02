@@ -21,6 +21,7 @@ export class Player {
     }
 
     public createPlayer(gameInstance, type): void {
+console.log('createPlayer');
         this.hud = new Hud();
         this.addControls();
         this.player = gameInstance.add.sprite(this.playerInstance.x, this.playerInstance.y, type);

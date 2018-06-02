@@ -1,44 +1,30 @@
-import {Game} from '../game/game.class';
-import {LifeCycle} from './lifecycle';
+import "phaser";
+import { GameScene } from "./../scenes/gameScene";
 
-export class PhaserSpaceGame extends Game implements LifeCycle {
+const config: GameConfig = {
+  title: "Coin Runner",
+  url: "https://github.com/digitsensitive/phaser3-typescript",
+  version: "1.1",
+  width: 768,
+  height: 576,
+  type: Phaser.AUTO,
+  parent: "game",
+  scene: [GameScene],
+  input: {
+    keyboard: true,
+    mouse: false,
+    touch: false,
+    gamepad: false
+  },
+  backgroundColor: "#3A99D9"
+};
 
-    private game: Phaser.Game;
-
-    constructor() {
-        super();
-        this.game = new Phaser.Game(1024, 768, Phaser.AUTO, 'space-shooter', {
-            preload: this.preload,
-            create: this.create,
-            update: this.update
-        });
-    }
-
-    public preload(): void {
-        const game = this.game.load;
-        game.crossOrigin = 'anonymous';
-        game.image('space', 'assets/background.jpg');
-        game.image('laser', 'assets/bullet.png');
-        game.spritesheet('dust', 'assets/dust.png', 64, 64, 16);
-        game.spritesheet('kaboom', 'assets/explosions.png', 64, 64, 16);
-        game.spritesheet('kaboom-big', 'assets/explosions-big.png', 152, 152, 16);
-        game.image('pickup', 'assets/pickup.png');
-        game.spritesheet('shooter-sprite', 'assets/ship.png', 32, 32);
-        game.spritesheet('shooter-sprite-enemy', 'assets/ship-enemy.png', 32, 32);
-        game.spritesheet('asteroid', 'assets/asteroids.png', 128, 128, 31);
-    }
-
-    public create(): void {
-        super.properties(this.game);
-        super.manageAssets(this.game);
-    }
-
-    public update(): void {
-        super.gameUpdate(this.game);
-    }
-
-    public get gameInstance(): Phaser.Game {
-        return this.game;
-    }
-
+export class Game extends Phaser.Game {
+  constructor(config: GameConfig) {
+    super(config);
+  }
 }
+
+window.onload = () => {
+  var game = new Game(config);
+};

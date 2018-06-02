@@ -16,22 +16,26 @@ export class Game {
 
     constructor() {
         window.socket = io.connect();
-        this.login = new LoginScene();
+        // this.login = new LoginScene();
     }
 
     protected manageAssets(game): void {
+console.log('manageAssets');
         this.actors = [];
         this.comets = [];
         window.socket.on(PlayerEvent.joined, (player) => {
+console.log(player);
             this.actors.push(new Player(game, player, 'shooter-sprite-enemy'));
         });
 
         window.socket.on(PlayerEvent.protagonist, (player) => {
+console.log(player);
             this.actor = new Player(game, player, 'shooter-sprite');
             this.actors.push(this.actor);
         });
 
         window.socket.on(PlayerEvent.players, (players) => {
+console.log(players);
             players.map((player: any) => {
                 const enemy = new Player(game, player, 'shooter-sprite-enemy');
                 if (player.ammo) {
@@ -95,6 +99,7 @@ export class Game {
         });
 
         window.socket.on(PlayerEvent.coordinates, (player) => {
+console.log(player);
             this.actors.filter((actor: Player) => {
                 if (actor.player.id === player.player.id) {
                     actor.player.x = player.coors.x;
@@ -119,66 +124,66 @@ export class Game {
 
     protected gameUpdate(game): void {
 
-        if (this.comet) {
-            game.physics.arcade.collide(this.comet.asteroid, this.actors.map(actor => actor.player), (comet, actor) => {
-                if (actor.id !== this.actor.player.id) {
-                    actor.destroy();
-                    window.socket.emit(PlayerEvent.hit, actor.id);
-                } else {
-                    window.location.reload();
-                }
-            });
+        // if (this.comet) {
+        //     game.physics.arcade.collide(this.comet.asteroid, this.actors.map(actor => actor.player), (comet, actor) => {
+        //         if (actor.id !== this.actor.player.id) {
+        //             actor.destroy();
+        //             window.socket.emit(PlayerEvent.hit, actor.id);
+        //         } else {
+        //             window.location.reload();
+        //         }
+        //     });
 
-            if (this.actor && this.actor.projectile) {
-                game.physics.arcade.collide(this.actor.projectile.weapon.bullets, this.comets.map((comet) => comet.asteroid),
-                    (comet, projectile) => {
-                        window.socket.emit(CometEvent.hit, comet.id);
-                        projectile.kill();
-                        this.comet.hit();
-                    });
-            }
-        }
+        //     if (this.actor && this.actor.projectile) {
+        //         game.physics.arcade.collide(this.actor.projectile.weapon.bullets, this.comets.map((comet) => comet.asteroid),
+        //             (comet, projectile) => {
+        //                 window.socket.emit(CometEvent.hit, comet.id);
+        //                 projectile.kill();
+        //                 this.comet.hit();
+        //             });
+        //     }
+        // }
 
-        if (this.actor && this.actor.controls) {
-            this.actor.view();
+        // if (this.actor && this.actor.controls) {
+        //     this.actor.view();
 
-            window.socket.emit(PlayerEvent.coordinates, {
-                x: this.actor.player.position.x,
-                y: this.actor.player.position.y,
-                r: this.actor.player.rotation,
-                f: this.actor.playerState.get('fire'),
-                m: this.actor.playerState.get('moving'),
-                a: this.actor.playerState.get('ammo')
-            });
+        //     window.socket.emit(PlayerEvent.coordinates, {
+        //         x: this.actor.player.position.x,
+        //         y: this.actor.player.position.y,
+        //         r: this.actor.player.rotation,
+        //         f: this.actor.playerState.get('fire'),
+        //         m: this.actor.playerState.get('moving'),
+        //         a: this.actor.playerState.get('ammo')
+        //     });
 
-            game.physics.arcade.collide(this.actor.player, this.actors.map(actor => actor.player));
+        //     game.physics.arcade.collide(this.actor.player, this.actors.map(actor => actor.player));
 
-            if (this.actor.projectile) {
-                game.physics.arcade.collide(this.actor.projectile.weapon.bullets, this.actors.map((actor) => actor.player),
-                    (enemy, projectile) => {
-                        if (enemy.id !== this.actor.player.id) {
-                            window.socket.emit(PlayerEvent.hit, enemy.id);
-                            projectile.kill();
-                            enemy.destroy();
-                        }
-                    });
-            }
+        //     if (this.actor.projectile) {
+        //         game.physics.arcade.collide(this.actor.projectile.weapon.bullets, this.actors.map((actor) => actor.player),
+        //             (enemy, projectile) => {
+        //                 if (enemy.id !== this.actor.player.id) {
+        //                     window.socket.emit(PlayerEvent.hit, enemy.id);
+        //                     projectile.kill();
+        //                     enemy.destroy();
+        //                 }
+        //             });
+        //     }
 
-            if (this.projectile) {
-                game.physics.arcade.overlap(this.projectile.pickup.item, this.actors.map((actor) => actor.player), (pickup, actor) => {
-                    this.actors
-                        .filter(actorInstance => actor.id === actorInstance.player.id)
-                        .map(actorInstance => actorInstance.assignPickup(game, actorInstance));
+        //     if (this.projectile) {
+        //         game.physics.arcade.overlap(this.projectile.pickup.item, this.actors.map((actor) => actor.player), (pickup, actor) => {
+        //             this.actors
+        //                 .filter(actorInstance => actor.id === actorInstance.player.id)
+        //                 .map(actorInstance => actorInstance.assignPickup(game, actorInstance));
 
-                    window.socket.emit(PlayerEvent.pickup, {
-                        uuid: actor.id,
-                        ammo: true
-                    });
+        //             window.socket.emit(PlayerEvent.pickup, {
+        //                 uuid: actor.id,
+        //                 ammo: true
+        //             });
 
-                    pickup.kill();
-                });
-            }
-        }
+        //             pickup.kill();
+        //         });
+        //     }
+        // }
     }
 
     protected properties(game): void {

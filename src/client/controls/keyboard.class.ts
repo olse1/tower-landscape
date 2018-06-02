@@ -12,6 +12,7 @@ export class KeyBoardControl {
     }
 
     public update(): void {
+console.log(this.playerInstance.player);
         if (this.playerInstance.player.alive) {
             this.playerInstance.playerState.set('fire', false);
 

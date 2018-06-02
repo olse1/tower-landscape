@@ -1,168 +1,116 @@
 "use strict";
 exports.__esModule = true;
-var events_model_1 = require("./../shared/events.model");
-var express = require('express');
-var app = express();
-var http = require('http').Server(app);
-var io = require('socket.io')(http);
-var uuid = require('uuid');
-app.use(express.static('public'));
-app.get('/', function (req, res) {
-    res.sendfile("./index.html");
-});
+var models_1 = require("../shared/models");
+var express = require("express");
+var http_1 = require("http");
+var socketIo = require("socket.io");
 var GameServer = (function () {
     function GameServer() {
         this.gameHasStarted = false;
         this.hasComet = false;
-        this.socketEvents();
+        this.players = [];
+        this.star = {
+            x: Math.floor(Math.random() * 700) + 50,
+            y: Math.floor(Math.random() * 500) + 50
+        };
+        this.scores = {
+            blue: 0,
+            red: 0
+        };
+        this.createApp();
+        this.config();
+        this.createServer();
+        this.sockets();
+        this.listen();
     }
-    GameServer.prototype.connect = function (port) {
-        http.listen(port, function () {
-            console.info("Listening on port " + port);
+    GameServer.prototype.createApp = function () {
+        this.app = express();
+        this.app.use(express.static('public'));
+        this.app.get('/', function (req, res) {
+            res.sendfile("./index.html");
         });
     };
-    GameServer.prototype.socketEvents = function () {
+    GameServer.prototype.createServer = function () {
+        this.server = http_1.createServer(this.app);
+    };
+    GameServer.prototype.config = function () {
+        this.port = GameServer.PORT;
+    };
+    GameServer.prototype.sockets = function () {
+        this.io = socketIo(this.server);
+    };
+    GameServer.prototype.listen = function () {
         var _this = this;
-        io.on(events_model_1.ServerEvent.connected, function (socket) {
-            _this.attachListeners(socket);
+        this.server.listen(this.port, function () {
+            console.log('Running server on port %s', _this.port);
         });
-    };
-    GameServer.prototype.attachListeners = function (socket) {
-        this.addSignOnListener(socket);
-        this.addMovementListener(socket);
-        this.addSignOutListener(socket);
-        this.addHitListener(socket);
-        this.addCometHitListener(socket);
-        this.addPickupListener(socket);
-    };
-    GameServer.prototype.addHitListener = function (socket) {
-        socket.on(events_model_1.PlayerEvent.hit, function (playerId) {
-            socket.broadcast.emit(events_model_1.PlayerEvent.hit, playerId);
-        });
-    };
-    GameServer.prototype.updateComet = function (socket) {
-        var _this = this;
-        if (this.hasComet) {
-            var asteroidCoordinates_1 = this.generateRandomCoordinates();
-            asteroidCoordinates_1.y = -128;
-            var update_1 = setInterval(function () {
-                asteroidCoordinates_1.y += 1;
-                asteroidCoordinates_1.x -= 1;
-                socket.emit(events_model_1.CometEvent.coordinates, asteroidCoordinates_1);
-                socket.broadcast.emit(events_model_1.CometEvent.coordinates, asteroidCoordinates_1);
-                _this.destroyComet(asteroidCoordinates_1, socket, update_1);
-            }, 25);
-        }
-    };
-    GameServer.prototype.destroyComet = function (asteroidCoordinates, socket, update) {
-        if (asteroidCoordinates.x < -128) {
-            socket.emit(events_model_1.CometEvent.destroy);
-            socket.broadcast.emit(events_model_1.CometEvent.destroy);
-            this.hasComet = false;
-            global.clearInterval(update);
-        }
-    };
-    GameServer.prototype.addCometHitListener = function (socket) {
-        socket.on(events_model_1.CometEvent.hit, function (playerId) {
-            socket.broadcast.emit(events_model_1.CometEvent.hit, playerId);
-        });
-    };
-    GameServer.prototype.gameInitialised = function (socket) {
-        if (!this.gameHasStarted) {
-            this.gameHasStarted = true;
-            this.createComet(socket, 1000);
-            this.calcPickupCoordinates(socket, 5000);
-        }
-    };
-    GameServer.prototype.calcPickupCoordinates = function (socket, interval) {
-        var _this = this;
-        setInterval(function () {
-            var coordinates = _this.generateRandomCoordinates();
-            socket.emit(events_model_1.GameEvent.drop, coordinates);
-            socket.broadcast.emit(events_model_1.GameEvent.drop, coordinates);
-        }, interval);
-    };
-    GameServer.prototype.createComet = function (socket, interval) {
-        var _this = this;
-        setInterval(function () {
-            if (!_this.hasComet) {
-                socket.comet = {
-                    id: uuid()
-                };
-                _this.hasComet = true;
-                socket.emit(events_model_1.CometEvent.create, socket.comet);
-                socket.broadcast.emit(events_model_1.CometEvent.create, socket.comet);
-                _this.updateComet(socket);
-            }
-        }, interval);
-    };
-    GameServer.prototype.addPickupListener = function (socket) {
-        socket.on(events_model_1.PlayerEvent.pickup, function (player) {
-            socket.player.ammo = player.ammo;
-            socket.broadcast.emit(events_model_1.PlayerEvent.pickup, player.uuid);
-        });
-    };
-    GameServer.prototype.addMovementListener = function (socket) {
-        socket.on(events_model_1.PlayerEvent.coordinates, function (coors) {
-            socket.broadcast.emit(events_model_1.PlayerEvent.coordinates, {
-                coors: coors,
-                player: socket.player
+        this.io.on('connection', function (socket) {
+            console.log('a user connected');
+            // create a new player and add it to our players object
+            _this.players[socket.id] = {
+                rotation: 0,
+                x: Math.floor(Math.random() * 700) + 50,
+                y: Math.floor(Math.random() * 500) + 50,
+                playerId: socket.id,
+                team: (Math.floor(Math.random() * 2) == 0) ? 'red' : 'blue'
+            };
+            // send the players object to the new player
+            socket.emit('currentPlayers', _this.players);
+            // send the star object to the new player
+            socket.emit('starLocation', _this.star);
+            // send the current scores
+            socket.emit('scoreUpdate', _this.scores);
+            // update all other players of the new player
+            socket.broadcast.emit('newPlayer', _this.players[socket.id]);
+            socket.on('disconnect', function () {
+                console.log('user disconnected');
+                // remove this player from our players object
+                delete _this.players[socket.id];
+                // emit a message to all players to remove this player
+                _this.io.emit('disconnect', socket.id);
+            });
+            // when a player moves, update the player data
+            socket.on('playerMovement', function (movementData) {
+                _this.players[socket.id].x = movementData.x;
+                _this.players[socket.id].y = movementData.y;
+                _this.players[socket.id].rotation = movementData.rotation;
+                // emit a message to all players about the player that moved
+                socket.broadcast.emit('playerMoved', _this.players[socket.id]);
+            });
+            socket.on('playerKeys', function (keys) {
+                var movespeed = models_1.PLAYER_CONFIG.walkSpeed;
+                if (keys.LEFT) {
+                    _this.players[socket.id].x -= movespeed;
+                }
+                if (keys.RIGHT) {
+                    _this.players[socket.id].x += movespeed;
+                }
+                if (keys.UP) {
+                    _this.players[socket.id].y -= movespeed;
+                }
+                if (keys.DOWN) {
+                    _this.players[socket.id].y += movespeed;
+                }
+                console.log("playerKeys: x: " + _this.players[socket.id].x + ", y: " + _this.players[socket.id].y);
+                // emit a message to all players about the player that moved
+                _this.io.emit('playerMoved', _this.players[socket.id]);
+            });
+            socket.on('starCollected', function () {
+                if (_this.players[socket.id].team === 'red') {
+                    _this.scores.red += 10;
+                }
+                else {
+                    _this.scores.blue += 10;
+                }
+                _this.star.x = Math.floor(Math.random() * 700) + 50;
+                _this.star.y = Math.floor(Math.random() * 500) + 50;
+                _this.io.emit('starLocation', _this.star);
+                _this.io.emit('scoreUpdate', _this.scores);
             });
         });
     };
-    GameServer.prototype.addSignOutListener = function (socket) {
-        socket.on(events_model_1.ServerEvent.disconnected, function () {
-            if (socket.player) {
-                socket.broadcast.emit(events_model_1.PlayerEvent.quit, socket.player.id);
-            }
-        });
-    };
-    GameServer.prototype.addSignOnListener = function (socket) {
-        var _this = this;
-        socket.on(events_model_1.GameEvent.authentication, function (player, gameSize) {
-            socket.emit(events_model_1.PlayerEvent.players, _this.getAllPlayers());
-            _this.createPlayer(socket, player, gameSize);
-            socket.emit(events_model_1.PlayerEvent.protagonist, socket.player);
-            socket.broadcast.emit(events_model_1.PlayerEvent.joined, socket.player);
-            _this.gameInitialised(socket);
-        });
-    };
-    GameServer.prototype.createPlayer = function (socket, player, windowSize) {
-        socket.player = {
-            name: player.name,
-            id: uuid(),
-            ammo: 0,
-            x: this.randomInt(0, windowSize.x),
-            y: this.randomInt(0, windowSize.y)
-        };
-    };
-    Object.defineProperty(GameServer.prototype, "players", {
-        get: function () {
-            return Object.keys(io.sockets.connected).length;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    GameServer.prototype.getAllPlayers = function () {
-        var players = [];
-        Object.keys(io.sockets.connected).map(function (socketID) {
-            var player = io.sockets.connected[socketID].player;
-            if (player) {
-                players.push(player);
-            }
-        });
-        return players;
-    };
-    GameServer.prototype.generateRandomCoordinates = function () {
-        return {
-            x: Math.floor(Math.random() * 1024) + 1,
-            y: Math.floor(Math.random() * 768) + 1
-        };
-    };
-    GameServer.prototype.randomInt = function (low, high) {
-        return Math.floor(Math.random() * (high - low) + low);
-    };
+    GameServer.PORT = 3000;
     return GameServer;
 }());
 var gameSession = new GameServer();
-gameSession.connect(3000);
+// gameSession.connect();
