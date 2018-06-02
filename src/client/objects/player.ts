@@ -10,16 +10,15 @@ import { socket } from './../../shared/socket';
 import { PLAYER_CONFIG } from '../../shared/models';
 
 export class Player extends Phaser.GameObjects.Image {
-    private cursors: any;
-    private walkingSpeed: number = 5;
+    private cursors: CursorKeys;
   
-    constructor(params) {
-      super(params.scene, params.x, params.y, params.key);
+    constructor(scene: Phaser.Scene, x: number, y: number, texture: string) {
+      super(scene, x, y, texture);
   
       this.initImage();
-      this.initInput(params);
+      this.initInput(scene);
   
-      params.scene.add.existing(this);
+      scene.add.existing(this);
     }
   
     private initImage(): void {
@@ -30,8 +29,8 @@ export class Player extends Phaser.GameObjects.Image {
       this.setOrigin(0.4, 0.4);
       this.setAngle(0);
     }
-    private initInput(params): void {
-      this.cursors = params.scene.input.keyboard.createCursorKeys();
+    private initInput(scene: Phaser.Scene): void {
+      this.cursors = scene.input.keyboard.createCursorKeys();
     }
   
     update(): void {
@@ -40,10 +39,10 @@ export class Player extends Phaser.GameObjects.Image {
   
     private handleInput(): void {
         let keys: CONTROLS = {
-            LEFT: this.cursors.LEFT.isDown,
-            RIGHT: this.cursors.right.isDown,
-            UP: this.cursors.up.isDown,
-            DOWN: this.cursors.down.isDown
+            WALK_LEFT: this.cursors.left.isDown,
+            WALK_RIGHT: this.cursors.right.isDown,
+            WALK_UP: this.cursors.up.isDown,
+            WALK_DOWN: this.cursors.down.isDown
         };
 
         let movespeed = PLAYER_CONFIG.walkSpeed;
@@ -52,20 +51,20 @@ export class Player extends Phaser.GameObjects.Image {
             y: 0
         }
         
-        if (keys.LEFT || keys.RIGHT || keys.UP || keys.DOWN) {
+        if (keys.WALK_LEFT || keys.WALK_RIGHT || keys.WALK_UP || keys.WALK_DOWN) {
             socket.emit('playerKeys', keys);
         }
 
-        if (keys.LEFT) {
+        if (keys.WALK_LEFT) {
             move.x -= movespeed;
         }
-        if (keys.RIGHT) {
+        if (keys.WALK_RIGHT) {
             move.x += movespeed;
         }
-        if (keys.UP) {
+        if (keys.WALK_UP) {
             move.y -= movespeed;
         }
-        if (keys.DOWN) {
+        if (keys.WALK_DOWN) {
             move.y += movespeed;
         }
 

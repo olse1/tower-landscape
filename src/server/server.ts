@@ -95,27 +95,18 @@ class GameServer {
                 this.io.emit('disconnect', socket.id);
             });
 
-            // when a player moves, update the player data
-            socket.on('playerMovement', (movementData) => {
-                this.players[socket.id].x = movementData.x;
-                this.players[socket.id].y = movementData.y;
-                this.players[socket.id].rotation = movementData.rotation;
-                // emit a message to all players about the player that moved
-                socket.broadcast.emit('playerMoved', this.players[socket.id]);
-            });
-
             socket.on('playerKeys', (keys: CONTROLS) => {
                 let movespeed = PLAYER_CONFIG.walkSpeed;
-                if (keys.LEFT) {
+                if (keys.WALK_LEFT) {
                     this.players[socket.id].x -= movespeed;
                 }
-                if (keys.RIGHT) {
+                if (keys.WALK_RIGHT) {
                     this.players[socket.id].x += movespeed;
                 }
-                if (keys.UP) {
+                if (keys.WALK_UP) {
                     this.players[socket.id].y -= movespeed;
                 }
-                if (keys.DOWN) {
+                if (keys.WALK_DOWN) {
                     this.players[socket.id].y += movespeed;
                 }
         console.log(`playerKeys: x: ${this.players[socket.id].x}, y: ${this.players[socket.id].y}`);

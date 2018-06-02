@@ -11,8 +11,8 @@ export const PLAYER_CONFIG = {
 }
 
 export interface CONTROLS {
-    LEFT: boolean;
-    RIGHT: boolean;
-    UP: boolean;
-    DOWN: boolean;
+    WALK_LEFT: boolean;
+    WALK_RIGHT: boolean;
+    WALK_UP: boolean;
+    WALK_DOWN: boolean;
 }
