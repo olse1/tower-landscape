@@ -36,15 +36,46 @@ export class Player extends Phaser.GameObjects.Image {
     update(): void {
       this.handleInput();
     }
-  
-    private handleInput(): void {
-        let keys: CONTROLS = {
+
+    private handleGamepad(): CONTROLS {
+        if (this.scene.input.gamepad.total === 0) {
+            return;
+        }
+
+        const pad = this.scene.input.gamepad.getPad(0);
+
+        const keys: CONTROLS = {
+            WALK_LEFT: pad.axes[0].getValue() < -0.2,
+            WALK_RIGHT: pad.axes[0].getValue() > 0.2,
+            WALK_UP: pad.axes[1].getValue() < -0.2,
+            WALK_DOWN: pad.axes[1].getValue() > 0.2
+        }
+        return keys;
+    }
+
+    private handleKeyboard(): CONTROLS {
+        const keys: CONTROLS = {
             WALK_LEFT: this.cursors.left.isDown,
             WALK_RIGHT: this.cursors.right.isDown,
             WALK_UP: this.cursors.up.isDown,
             WALK_DOWN: this.cursors.down.isDown
         };
+        return keys;
+    }
 
+  
+    private handleInput(): void {
+        const padKeys = this.handleGamepad();
+        const keyboardKeys = this.handleKeyboard();
+
+        const keys: CONTROLS = {
+            WALK_LEFT: keyboardKeys.WALK_LEFT || padKeys.WALK_LEFT,
+            WALK_RIGHT: keyboardKeys.WALK_RIGHT || padKeys.WALK_RIGHT,
+            WALK_UP: keyboardKeys.WALK_UP || padKeys.WALK_UP,
+            WALK_DOWN: keyboardKeys.WALK_DOWN || padKeys.WALK_DOWN
+        };
+
+        // move player
         let movespeed = PLAYER_CONFIG.walkSpeed;
         let move = {
             x: 0,
