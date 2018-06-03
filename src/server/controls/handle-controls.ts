@@ -24,6 +24,9 @@ export class PlayerControls {
         if (keys.WALK_DOWN) {
             player.y += player.walkSpeed * player.controls.WALK_DOWN.delta;
         }
+
+        // update rotation
+        player.rotation = keys.ROTATION;
     }
 
     private static handleControl(control: PLAYER_CONTROL, controlDown: boolean, timestamp) {

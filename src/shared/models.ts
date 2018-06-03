@@ -15,6 +15,7 @@ export interface CONTROLS {
     WALK_RIGHT: boolean;
     WALK_UP: boolean;
     WALK_DOWN: boolean;
+    ROTATION: number
 }
 
 export class PLAYER_CONTROL {

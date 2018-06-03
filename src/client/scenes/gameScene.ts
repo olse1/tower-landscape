@@ -56,8 +56,9 @@ export class GameScene extends Phaser.Scene {
       }
     );
 
-    socket.on('playerMoved', (playerInfo) => {
+    socket.on('playerMoved', (playerInfo: Player) => {
         this.player.move(playerInfo.x, playerInfo.y);
+        this.player.setRotation(playerInfo.rotation)
     });
   }
 
