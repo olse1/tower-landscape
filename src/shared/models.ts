@@ -32,7 +32,7 @@ export class PLAYER_CONTROLS {
 }
 
 export class ServerPlayer {
-    public id = 0;
+    public id = '';
     
     public x = 0;
     public y = 0;
@@ -45,7 +45,7 @@ export class ServerPlayer {
 
     public walkSpeed = PLAYER_CONFIG.walkSpeed;
 
-    constructor(id: number,
+    constructor(id: string,
                 x?: number,
                 y?: number,
                 rotation?: number,

@@ -11,9 +11,9 @@ import { PLAYER_CONFIG } from '../../shared/models';
 
 export class Player extends Phaser.GameObjects.Image {
     private cursors: CursorKeys;
-    public id: number;
+    public id: string;
   
-    constructor(scene: Phaser.Scene, x: number, y: number, texture: string, id: number) {
+    constructor(scene: Phaser.Scene, x: number, y: number, texture: string, id: string) {
       super(scene, x, y, texture);
 
       this.id = id;
@@ -126,12 +126,7 @@ export class Player extends Phaser.GameObjects.Image {
             y: this.y + move.y
         }
 
-        this.move(newPosition.x, newPosition.y);
+        this.setPosition(newPosition.x, newPosition.y);
         this.setRotation(keys.ROTATION);
-    }
-
-    public move(x: number, y: number) {
-        this.x = x;
-        this.y = y;
     }
 }

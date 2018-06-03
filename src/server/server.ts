@@ -10,9 +10,8 @@ import {SpaceShip, PLAYER_CONFIG} from '../shared/models';
 import * as express from 'express';
 import { createServer, Server } from 'http';
 import * as socketIo from 'socket.io';
-import { Socket } from 'net';
 import { PlayerControls } from './controls/handle-controls';
-
+import { timer } from 'rxjs';
 
 class GameServer {
 
@@ -24,7 +23,7 @@ class GameServer {
 
     private gameHasStarted: boolean = false;
     private hasComet: boolean = false;
-    public players: ServerPlayer[] = [];
+    public players = {};
     private star = {
         x: Math.floor(Math.random() * 700) + 50,
         y: Math.floor(Math.random() * 500) + 50
@@ -68,19 +67,25 @@ class GameServer {
             console.log('Running server on port %s', this.port);
         });
 
-        this.io.on('connection', (socket: any) => {
+        this.io.on('connection', (socket: SocketIO.Socket) => {
             console.log('a user connected');
-            // create a new player and add it to our players object
-            this.players[socket.id] = new ServerPlayer(socket.id);
-            // send the players object to the new player
-            socket.emit('currentPlayers', this.players);
-            // send the star object to the new player
-            socket.emit('starLocation', this.star);
-            // send the current scores
-            socket.emit('scoreUpdate', this.scores);
 
-            // update all other players of the new player
-            socket.broadcast.emit('newPlayer', this.players[socket.id]);
+            socket.on(GameEvent.authentication, (name, player) => {
+                console.log(`${name} connected`);
+                // create a new player and add it to our players object
+                this.players[socket.id] = new ServerPlayer(socket.id);
+
+                timer(500).subscribe(() => {
+                    // send the players object to the new player
+                    socket.emit('currentPlayers', this.players);
+                    // send the star object to the new player
+                    socket.emit('starLocation', this.star);
+                    // send the current scores
+                    socket.emit('scoreUpdate', this.scores);
+                    // update all other players of the new player
+                    socket.broadcast.emit('newPlayer', this.players[socket.id]);
+                })
+            });
 
             socket.on('disconnect', () => {
                 console.log('user disconnected');
