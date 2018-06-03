@@ -1,4 +1,4 @@
-import { CONTROLS } from './../shared/models';
+import { CONTROLS, Player } from './../shared/models';
 import {
     CometEvent,
     GameEvent,
@@ -11,6 +11,7 @@ import * as express from 'express';
 import { createServer, Server } from 'http';
 import * as socketIo from 'socket.io';
 import { Socket } from 'net';
+import { PlayerControls } from './controls/handle-controls';
 
 
 class GameServer {
@@ -23,7 +24,7 @@ class GameServer {
 
     private gameHasStarted: boolean = false;
     private hasComet: boolean = false;
-    public players = [];
+    public players: Player[] = [];
     private star = {
         x: Math.floor(Math.random() * 700) + 50,
         y: Math.floor(Math.random() * 500) + 50
@@ -70,13 +71,7 @@ class GameServer {
         this.io.on('connection', (socket: any) => {
             console.log('a user connected');
             // create a new player and add it to our players object
-            this.players[socket.id] = {
-                rotation: 0,
-                x: Math.floor(Math.random() * 700) + 50,
-                y: Math.floor(Math.random() * 500) + 50,
-                playerId: socket.id,
-                team: (Math.floor(Math.random() * 2) == 0) ? 'red' : 'blue'
-            };
+            this.players[socket.id] = new Player(socket.id);
             // send the players object to the new player
             socket.emit('currentPlayers', this.players);
             // send the star object to the new player
@@ -96,19 +91,7 @@ class GameServer {
             });
 
             socket.on('playerKeys', (keys: CONTROLS) => {
-                let movespeed = PLAYER_CONFIG.walkSpeed;
-                if (keys.WALK_LEFT) {
-                    this.players[socket.id].x -= movespeed;
-                }
-                if (keys.WALK_RIGHT) {
-                    this.players[socket.id].x += movespeed;
-                }
-                if (keys.WALK_UP) {
-                    this.players[socket.id].y -= movespeed;
-                }
-                if (keys.WALK_DOWN) {
-                    this.players[socket.id].y += movespeed;
-                }
+                PlayerControls.handleControls(this.players[socket.id], keys);
         console.log(`playerKeys: x: ${this.players[socket.id].x}, y: ${this.players[socket.id].y}`);
                 // emit a message to all players about the player that moved
                 this.io.emit('playerMoved', this.players[socket.id]);

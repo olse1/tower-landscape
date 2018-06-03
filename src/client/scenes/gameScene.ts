@@ -40,7 +40,7 @@ export class GameScene extends Phaser.Scene {
       y: Phaser.Math.RND.integerInRange(100, 500),
       key: "coin"
     });
-    this.player = new Player({ scene: this, x: 150, y: 300, key: "player" });
+    this.player = new Player(this, 150, 300, "player");
 
     // create texts
     this.coinsCollectedText = this.add.text(
