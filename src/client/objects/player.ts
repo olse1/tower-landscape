@@ -11,9 +11,12 @@ import { PLAYER_CONFIG } from '../../shared/models';
 
 export class Player extends Phaser.GameObjects.Image {
     private cursors: CursorKeys;
+    public id: number;
   
-    constructor(scene: Phaser.Scene, x: number, y: number, texture: string) {
+    constructor(scene: Phaser.Scene, x: number, y: number, texture: string, id: number) {
       super(scene, x, y, texture);
+
+      this.id = id;
   
       this.initImage();
       this.initInput(scene);
@@ -39,7 +42,14 @@ export class Player extends Phaser.GameObjects.Image {
 
     private handleGamepad(): CONTROLS {
         if (this.scene.input.gamepad.total === 0) {
-            return;
+            const keys: CONTROLS = {
+                WALK_LEFT: false,
+                WALK_RIGHT: false,
+                WALK_UP: false,
+                WALK_DOWN: false,
+                ROTATION: 0
+            }
+            return keys;
         }
 
         const pad = this.scene.input.gamepad.getPad(0);

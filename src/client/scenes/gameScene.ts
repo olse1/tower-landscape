@@ -7,11 +7,13 @@
 import { socket } from './../../shared/socket';
 import { Coin } from "../objects/coin";
 import { Player } from "../objects/player";
+import { ServerPlayer } from '../../shared/models';
 
 export class GameScene extends Phaser.Scene {
   private background: Phaser.GameObjects.Image;
   private coin: Coin;
   private player: Player;
+  private otherPlayers: Player[] = [];
 
   private collectedCoins: number = 0;
   private coinsCollectedText: Phaser.GameObjects.Text;
@@ -40,7 +42,7 @@ export class GameScene extends Phaser.Scene {
       y: Phaser.Math.RND.integerInRange(100, 500),
       key: "coin"
     });
-    this.player = new Player(this, 150, 300, "player");
+    this.player = new Player(this, 150, 300, "player", 0);
 
     // create texts
     this.coinsCollectedText = this.add.text(
@@ -56,10 +58,14 @@ export class GameScene extends Phaser.Scene {
       }
     );
 
-    socket.on('playerMoved', (playerInfo: Player) => {
+    socket.on('playerMoved', (playerInfo: ServerPlayer) => {
         this.player.move(playerInfo.x, playerInfo.y);
         this.player.setRotation(playerInfo.rotation)
     });
+
+    socket.on('newPlayer', (playerInfo: ServerPlayer) => {
+      this.addOtherPlayer(playerInfo);
+  });
   }
 
   update(): void {
@@ -76,6 +82,19 @@ export class GameScene extends Phaser.Scene {
     ) {
       this.updateCoinStatus();
     }
+  }
+
+  private addOtherPlayer(player: ServerPlayer) {
+    const otherPlayer = new Player(this, player.x, player.y, 'player', player.id);
+    otherPlayer.setOrigin(0.5, 0.5);
+    otherPlayer.setDisplaySize(75, 75);;
+    if (player.team === 'blue') {
+        otherPlayer.setTint(0x0000ff);
+    } else {
+        otherPlayer.setTint(0xff0000);
+    }
+    otherPlayer.id = player.id;
+    this.otherPlayers[player.id] = otherPlayer;
   }
 
   private updateCoinStatus(): void {

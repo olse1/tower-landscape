@@ -31,7 +31,7 @@ export class PLAYER_CONTROLS {
     WALK_DOWN: PLAYER_CONTROL = new PLAYER_CONTROL();
 }
 
-export class Player {
+export class ServerPlayer {
     public id = 0;
     
     public x = 0;

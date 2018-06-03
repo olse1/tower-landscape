@@ -1,4 +1,4 @@
-import { CONTROLS, Player } from './../shared/models';
+import { CONTROLS, ServerPlayer } from './../shared/models';
 import {
     CometEvent,
     GameEvent,
@@ -24,7 +24,7 @@ class GameServer {
 
     private gameHasStarted: boolean = false;
     private hasComet: boolean = false;
-    public players: Player[] = [];
+    public players: ServerPlayer[] = [];
     private star = {
         x: Math.floor(Math.random() * 700) + 50,
         y: Math.floor(Math.random() * 500) + 50
@@ -71,7 +71,7 @@ class GameServer {
         this.io.on('connection', (socket: any) => {
             console.log('a user connected');
             // create a new player and add it to our players object
-            this.players[socket.id] = new Player(socket.id);
+            this.players[socket.id] = new ServerPlayer(socket.id);
             // send the players object to the new player
             socket.emit('currentPlayers', this.players);
             // send the star object to the new player

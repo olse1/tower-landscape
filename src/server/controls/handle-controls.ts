@@ -1,12 +1,12 @@
-import { PLAYER_CONFIG, CONTROLS, Player, PLAYER_CONTROL } from './../../shared/models';
+import { PLAYER_CONFIG, CONTROLS, ServerPlayer, PLAYER_CONTROL } from './../../shared/models';
 
 export class PlayerControls {
-    static handleControls(player: Player, keys: CONTROLS) {
+    static handleControls(player: ServerPlayer, keys: CONTROLS) {
         player.timestamp = Date.now();
         this.handleMoving(player, keys);
     }
 
-    private static handleMoving(player: Player, keys: CONTROLS) {
+    private static handleMoving(player: ServerPlayer, keys: CONTROLS) {
         this.handleControl(player.controls.WALK_LEFT, keys.WALK_LEFT, player.timestamp);
         this.handleControl(player.controls.WALK_RIGHT, keys.WALK_RIGHT, player.timestamp);
         this.handleControl(player.controls.WALK_UP, keys.WALK_UP, player.timestamp);
